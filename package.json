@@ -2,9 +2,10 @@
   "name": "taskforge",
   "version": "1.0.0",
   "description": "Realtime team task tracker",
-  "main": "index.js",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
   },
   "author": "",
   "license": "Apache-2.0",
