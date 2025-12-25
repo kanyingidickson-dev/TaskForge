@@ -15,14 +15,20 @@ function createApp() {
   app.set('trust proxy', 1);
 
   app.use(helmet());
-  app.use(
-    rateLimit({
-      windowMs: 60_000,
-      limit: 300,
-      standardHeaders: true,
-      legacyHeaders: false,
-    })
-  );
+
+  const rateLimitEnabled =
+    process.env.DISABLE_RATE_LIMIT !== '1' && process.env.NODE_ENV === 'production';
+
+  if (rateLimitEnabled) {
+    app.use(
+      rateLimit({
+        windowMs: 60_000,
+        limit: 300,
+        standardHeaders: true,
+        legacyHeaders: false,
+      })
+    );
+  }
 
   app.use(requestId());
   app.use(securityHeaders());
