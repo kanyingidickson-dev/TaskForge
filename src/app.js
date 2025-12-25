@@ -1,4 +1,6 @@
 const express = require('express');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 const { requestId } = require('./middleware/requestId');
 const { securityHeaders } = require('./middleware/securityHeaders');
@@ -11,6 +13,16 @@ function createApp() {
 
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
+
+  app.use(helmet());
+  app.use(
+    rateLimit({
+      windowMs: 60_000,
+      limit: 300,
+      standardHeaders: true,
+      legacyHeaders: false,
+    })
+  );
 
   app.use(requestId());
   app.use(securityHeaders());
