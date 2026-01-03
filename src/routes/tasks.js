@@ -6,6 +6,7 @@ const { requireAuth } = require('../middleware/requireAuth');
 const { requireTeamRole } = require('../middleware/requireTeamRole');
 const { validate } = require('../middleware/validate');
 const taskService = require('../services/taskService');
+const { commentsRoutes } = require('./comments');
 
 const tasksRoutes = express.Router({ mergeParams: true });
 
@@ -82,5 +83,7 @@ tasksRoutes.patch(
     res.status(200).json(result);
   })
 );
+
+tasksRoutes.use('/:taskId/comments', commentsRoutes);
 
 module.exports = { tasksRoutes };
