@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "format": "prettier -w .",
     "test": "jest",
-    "bench": "node scripts/bench.js"
+    "bench": "node scripts/bench.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json"
   },
   "author": "",
   "license": "Apache-2.0",
@@ -23,6 +25,9 @@
     "eslint": "^9.20.0",
     "jest": "^29.7.0",
     "prettier": "^3.4.2",
-    "supertest": "^7.0.0"
+    "supertest": "^7.0.0",
+    "typescript": "^5.7.3",
+    "@types/node": "^22.10.10",
+    "@types/express": "^4.17.21"
   }
 }
