@@ -87,4 +87,173 @@ describeIfDb('teams endpoints (db integration)', () => {
     expect(listMemberTeams.body.teams[0].team.id).toBe(teamId);
     expect(listMemberTeams.body.teams[0].role).toBe('MEMBER');
   });
+
+  test('admin can update member role; admin cannot promote to owner; member cannot update roles', async () => {
+    const app = createApp();
+
+    const owner = await request(app).post('/auth/register').send({
+      email: 'owner2@example.com',
+      name: 'Owner 2',
+      password: 'password123',
+    });
+    const admin = await request(app).post('/auth/register').send({
+      email: 'admin@example.com',
+      name: 'Admin',
+      password: 'password123',
+    });
+    const member = await request(app).post('/auth/register').send({
+      email: 'member2@example.com',
+      name: 'Member 2',
+      password: 'password123',
+    });
+
+    const teamRes = await request(app)
+      .post('/teams')
+      .set('Authorization', `Bearer ${owner.body.accessToken}`)
+      .send({ name: 'Team B' });
+
+    const teamId = teamRes.body.team.id;
+
+    const addAdmin = await request(app)
+      .post(`/teams/${teamId}/members`)
+      .set('Authorization', `Bearer ${owner.body.accessToken}`)
+      .send({ userId: admin.body.user.id, role: 'ADMIN' });
+
+    expect(addAdmin.status).toBe(201);
+
+    const addMember = await request(app)
+      .post(`/teams/${teamId}/members`)
+      .set('Authorization', `Bearer ${owner.body.accessToken}`)
+      .send({ userId: member.body.user.id, role: 'MEMBER' });
+
+    expect(addMember.status).toBe(201);
+
+    const promoteMemberToAdmin = await request(app)
+      .patch(`/teams/${teamId}/members/${member.body.user.id}`)
+      .set('Authorization', `Bearer ${admin.body.accessToken}`)
+      .send({ role: 'ADMIN' });
+
+    expect(promoteMemberToAdmin.status).toBe(200);
+    expect(promoteMemberToAdmin.body.membership.user.email).toBe('member2@example.com');
+    expect(promoteMemberToAdmin.body.membership.role).toBe('ADMIN');
+
+    const adminPromoteToOwnerAttempt = await request(app)
+      .patch(`/teams/${teamId}/members/${member.body.user.id}`)
+      .set('Authorization', `Bearer ${admin.body.accessToken}`)
+      .send({ role: 'OWNER' });
+
+    expect(adminPromoteToOwnerAttempt.status).toBe(403);
+    expect(adminPromoteToOwnerAttempt.body).toMatchObject({
+      error: { code: 'FORBIDDEN' },
+    });
+
+    const memberUpdateAttempt = await request(app)
+      .patch(`/teams/${teamId}/members/${admin.body.user.id}`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .send({ role: 'MEMBER' });
+
+    expect(memberUpdateAttempt.status).toBe(403);
+    expect(memberUpdateAttempt.body).toMatchObject({
+      error: { code: 'FORBIDDEN' },
+    });
+  });
+
+  test('cannot demote or remove the last owner', async () => {
+    const app = createApp();
+
+    const owner = await request(app).post('/auth/register').send({
+      email: 'owner3@example.com',
+      name: 'Owner 3',
+      password: 'password123',
+    });
+
+    const teamRes = await request(app)
+      .post('/teams')
+      .set('Authorization', `Bearer ${owner.body.accessToken}`)
+      .send({ name: 'Team C' });
+
+    const teamId = teamRes.body.team.id;
+
+    const demoteSelfAttempt = await request(app)
+      .patch(`/teams/${teamId}/members/${owner.body.user.id}`)
+      .set('Authorization', `Bearer ${owner.body.accessToken}`)
+      .send({ role: 'ADMIN' });
+
+    expect(demoteSelfAttempt.status).toBe(409);
+    expect(demoteSelfAttempt.body).toMatchObject({
+      error: { code: 'LAST_OWNER' },
+    });
+
+    const removeSelfAttempt = await request(app)
+      .delete(`/teams/${teamId}/members/${owner.body.user.id}`)
+      .set('Authorization', `Bearer ${owner.body.accessToken}`);
+
+    expect(removeSelfAttempt.status).toBe(409);
+    expect(removeSelfAttempt.body).toMatchObject({
+      error: { code: 'LAST_OWNER' },
+    });
+  });
+
+  test('admin can remove a member; admin cannot remove an owner', async () => {
+    const app = createApp();
+
+    const owner = await request(app).post('/auth/register').send({
+      email: 'owner4@example.com',
+      name: 'Owner 4',
+      password: 'password123',
+    });
+    const admin = await request(app).post('/auth/register').send({
+      email: 'admin2@example.com',
+      name: 'Admin 2',
+      password: 'password123',
+    });
+    const member = await request(app).post('/auth/register').send({
+      email: 'member4@example.com',
+      name: 'Member 4',
+      password: 'password123',
+    });
+
+    const teamRes = await request(app)
+      .post('/teams')
+      .set('Authorization', `Bearer ${owner.body.accessToken}`)
+      .send({ name: 'Team D' });
+
+    const teamId = teamRes.body.team.id;
+
+    await request(app)
+      .post(`/teams/${teamId}/members`)
+      .set('Authorization', `Bearer ${owner.body.accessToken}`)
+      .send({ userId: admin.body.user.id, role: 'ADMIN' });
+
+    await request(app)
+      .post(`/teams/${teamId}/members`)
+      .set('Authorization', `Bearer ${owner.body.accessToken}`)
+      .send({ userId: member.body.user.id, role: 'MEMBER' });
+
+    const removeMember = await request(app)
+      .delete(`/teams/${teamId}/members/${member.body.user.id}`)
+      .set('Authorization', `Bearer ${admin.body.accessToken}`);
+
+    expect(removeMember.status).toBe(204);
+
+    const listMembers = await request(app)
+      .get(`/teams/${teamId}/members`)
+      .set('Authorization', `Bearer ${owner.body.accessToken}`);
+
+    expect(listMembers.status).toBe(200);
+    expect(listMembers.body.members.length).toBe(2);
+    expect(listMembers.body.members.map((m) => m.user.email)).toEqual([
+      'owner4@example.com',
+      'admin2@example.com',
+    ]);
+
+    const adminRemoveOwnerAttempt = await request(app)
+      .delete(`/teams/${teamId}/members/${owner.body.user.id}`)
+      .set('Authorization', `Bearer ${admin.body.accessToken}`);
+
+    expect(adminRemoveOwnerAttempt.status).toBe(403);
+    expect(adminRemoveOwnerAttempt.body).toMatchObject({
+      error: { code: 'FORBIDDEN' },
+    });
+  });
 });

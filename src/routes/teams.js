@@ -18,6 +18,10 @@ const addMemberSchema = z.object({
   role: z.enum(['OWNER', 'ADMIN', 'MEMBER']),
 });
 
+const updateMemberRoleSchema = z.object({
+  role: z.enum(['OWNER', 'ADMIN', 'MEMBER']),
+});
+
 teamsRoutes.post(
   '/',
   requireAuth(),
@@ -62,6 +66,36 @@ teamsRoutes.post(
       role: req.body.role,
     });
     res.status(201).json(result);
+  })
+);
+
+teamsRoutes.patch(
+  '/:teamId/members/:userId',
+  requireAuth(),
+  requireTeamRole({ minRole: 'ADMIN' }),
+  validate({ body: updateMemberRoleSchema }),
+  asyncHandler(async (req, res) => {
+    const result = await teamService.updateTeamMemberRole({
+      teamId: req.params.teamId,
+      actorRole: req.teamMembership.role,
+      targetUserId: req.params.userId,
+      role: req.body.role,
+    });
+    res.status(200).json(result);
+  })
+);
+
+teamsRoutes.delete(
+  '/:teamId/members/:userId',
+  requireAuth(),
+  requireTeamRole({ minRole: 'ADMIN' }),
+  asyncHandler(async (req, res) => {
+    await teamService.removeTeamMember({
+      teamId: req.params.teamId,
+      actorRole: req.teamMembership.role,
+      targetUserId: req.params.userId,
+    });
+    res.status(204).end();
   })
 );
 
