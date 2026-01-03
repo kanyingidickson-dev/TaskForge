@@ -42,7 +42,7 @@ async function waitForServer() {
     try {
       const code = await requestHealth();
       if (code === 200) return;
-    } catch (err) {
+    } catch {
       await sleep(100);
     }
   }

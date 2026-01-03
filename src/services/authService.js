@@ -103,7 +103,7 @@ async function refresh({ refreshToken }) {
   let payload;
   try {
     payload = verifyRefreshToken(refreshToken);
-  } catch (err) {
+  } catch {
     throw new HttpError({
       status: 401,
       code: 'UNAUTHORIZED',
@@ -155,7 +155,7 @@ async function logout({ refreshToken }) {
   let payload;
   try {
     payload = verifyRefreshToken(refreshToken);
-  } catch (err) {
+  } catch {
     return;
   }
 

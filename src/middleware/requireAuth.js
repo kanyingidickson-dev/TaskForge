@@ -29,7 +29,7 @@ function requireAuth() {
       const payload = verifyAccessToken(parts[1]);
       req.user = { id: payload.sub };
       return next();
-    } catch (err) {
+    } catch {
       return next(
         new HttpError({
           status: 401,
