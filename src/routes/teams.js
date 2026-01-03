@@ -6,6 +6,7 @@ const { requireAuth } = require('../middleware/requireAuth');
 const { requireTeamRole } = require('../middleware/requireTeamRole');
 const { validate } = require('../middleware/validate');
 const teamService = require('../services/teamService');
+const { tasksRoutes } = require('./tasks');
 
 const teamsRoutes = express.Router();
 
@@ -98,5 +99,7 @@ teamsRoutes.delete(
     res.status(204).end();
   })
 );
+
+teamsRoutes.use('/:teamId/tasks', tasksRoutes);
 
 module.exports = { teamsRoutes };
