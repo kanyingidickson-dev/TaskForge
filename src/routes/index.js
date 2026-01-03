@@ -2,6 +2,7 @@ const express = require('express');
 
 const { authRoutes } = require('./auth');
 const { meRoutes } = require('./me');
+const { teamsRoutes } = require('./teams');
 
 const routes = express.Router();
 
@@ -29,5 +30,6 @@ routes.get('/health', (req, res) => {
 
 routes.use('/auth', authRoutes);
 routes.use(meRoutes);
+routes.use('/teams', teamsRoutes);
 
 module.exports = { routes };
