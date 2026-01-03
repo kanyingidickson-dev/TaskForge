@@ -27,6 +27,7 @@ See:
 - `docs/architecture.md`
 - `docs/data-model.md`
 - `docs/realtime.md`
+- `docs/stack.md`
 
 ## Development status
 
