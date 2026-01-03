@@ -1,6 +1,14 @@
+const { HttpError } = require('../utils/httpError');
+
 function notFound() {
-  return (req, res) => {
-    res.status(404).json({ error: 'Not Found' });
+  return (req, res, next) => {
+    next(
+      new HttpError({
+        status: 404,
+        code: 'NOT_FOUND',
+        message: 'Not Found',
+      })
+    );
   };
 }
 

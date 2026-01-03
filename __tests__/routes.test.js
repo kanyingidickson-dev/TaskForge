@@ -21,5 +21,13 @@ describe('routes', () => {
     const app = createApp();
     const res = await request(app).get('/nope');
     expect(res.status).toBe(404);
+    expect(res.body).toMatchObject({
+      error: {
+        code: 'NOT_FOUND',
+        message: 'Not Found',
+      },
+    });
+    expect(typeof res.body.error.requestId).toBe('string');
+    expect(res.body.error.requestId.length).toBeGreaterThan(0);
   });
 });
