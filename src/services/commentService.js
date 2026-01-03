@@ -1,6 +1,6 @@
 const { getPrisma } = require('../db/prisma');
 const { HttpError } = require('../utils/httpError');
-const { logActivity } = require('./activityLogService');
+const { logActivity, publishActivity } = require('./activityLogService');
 
 const ROLE_RANK = {
   MEMBER: 1,
@@ -29,7 +29,7 @@ async function assertTaskExists({ prisma, teamId, taskId }) {
 async function createComment({ teamId, taskId, authorUserId, body }) {
   const prisma = getPrisma();
 
-  const comment = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     await assertTaskExists({ prisma: tx, teamId, taskId });
 
     const created = await tx.comment.create({
@@ -52,7 +52,7 @@ async function createComment({ teamId, taskId, authorUserId, body }) {
       },
     });
 
-    await logActivity({
+    const activity = await logActivity({
       prisma: tx,
       teamId,
       actorUserId: authorUserId,
@@ -64,10 +64,12 @@ async function createComment({ teamId, taskId, authorUserId, body }) {
       },
     });
 
-    return created;
+    return { comment: created, activity };
   });
 
-  return { comment };
+  publishActivity(result.activity);
+
+  return { comment: result.comment };
 }
 
 async function listTaskComments({ teamId, taskId }) {
@@ -101,7 +103,7 @@ async function listTaskComments({ teamId, taskId }) {
 async function deleteComment({ teamId, taskId, commentId, actorUserId, actorRole }) {
   const prisma = getPrisma();
 
-  await prisma.$transaction(async (tx) => {
+  const activity = await prisma.$transaction(async (tx) => {
     await assertTaskExists({ prisma: tx, teamId, taskId });
 
     const comment = await tx.comment.findFirst({
@@ -137,7 +139,7 @@ async function deleteComment({ teamId, taskId, commentId, actorUserId, actorRole
       data: { deletedAt: new Date() },
     });
 
-    await logActivity({
+    const activityLog = await logActivity({
       prisma: tx,
       teamId,
       actorUserId,
@@ -148,7 +150,11 @@ async function deleteComment({ teamId, taskId, commentId, actorUserId, actorRole
         taskId,
       },
     });
+
+    return activityLog;
   });
+
+  publishActivity(activity);
 }
 
 module.exports = {

@@ -1,6 +1,6 @@
 const { getPrisma } = require('../db/prisma');
 const { HttpError } = require('../utils/httpError');
-const { logActivity } = require('./activityLogService');
+const { logActivity, publishActivity } = require('./activityLogService');
 
 const ROLE_RANK = {
   MEMBER: 1,
@@ -11,7 +11,7 @@ const ROLE_RANK = {
 async function createTeam({ userId, name }) {
   const prisma = getPrisma();
 
-  const team = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const created = await tx.team.create({
       data: {
         name,
@@ -25,7 +25,7 @@ async function createTeam({ userId, name }) {
       },
     });
 
-    await logActivity({
+    const activity = await logActivity({
       prisma: tx,
       teamId: created.id,
       actorUserId: userId,
@@ -35,10 +35,14 @@ async function createTeam({ userId, name }) {
       data: { name: created.name },
     });
 
-    return created;
+    return { team: created, activities: [activity] };
   });
 
-  return { team };
+  for (const activity of result.activities) {
+    publishActivity(activity);
+  }
+
+  return { team: result.team };
 }
 
 async function updateTeamMemberRole({ teamId, actorUserId, actorRole, targetUserId, role }) {
@@ -134,7 +138,7 @@ async function updateTeamMemberRole({ teamId, actorUserId, actorRole, targetUser
       },
     });
 
-    await logActivity({
+    const activity = await logActivity({
       prisma: tx,
       teamId,
       actorUserId,
@@ -148,16 +152,18 @@ async function updateTeamMemberRole({ teamId, actorUserId, actorRole, targetUser
       },
     });
 
-    return updatedMembership;
+    return { membership: updatedMembership, activity };
   });
+
+  publishActivity(updated.activity);
 
   return {
     membership: {
-      teamId: updated.teamId,
-      role: updated.role,
-      user: updated.user,
-      createdAt: updated.createdAt,
-      updatedAt: updated.updatedAt,
+      teamId: updated.membership.teamId,
+      role: updated.membership.role,
+      user: updated.membership.user,
+      createdAt: updated.membership.createdAt,
+      updatedAt: updated.membership.updatedAt,
     },
   };
 }
@@ -165,7 +171,7 @@ async function updateTeamMemberRole({ teamId, actorUserId, actorRole, targetUser
 async function removeTeamMember({ teamId, actorUserId, actorRole, targetUserId }) {
   const prisma = getPrisma();
 
-  await prisma.$transaction(async (tx) => {
+  const activity = await prisma.$transaction(async (tx) => {
     const membership = await tx.teamMembership.findUnique({
       where: {
         teamId_userId: {
@@ -224,7 +230,7 @@ async function removeTeamMember({ teamId, actorUserId, actorRole, targetUserId }
       },
     });
 
-    await logActivity({
+    const activityLog = await logActivity({
       prisma: tx,
       teamId,
       actorUserId: actorUserId || null,
@@ -233,7 +239,11 @@ async function removeTeamMember({ teamId, actorUserId, actorRole, targetUserId }
       action: 'DELETED',
       data: { userId: targetUserId },
     });
+
+    return activityLog;
   });
+
+  publishActivity(activity);
 }
 
 async function listMyTeams({ userId }) {
@@ -294,7 +304,7 @@ async function addTeamMember({ teamId, actorUserId, userId, role }) {
   }
 
   try {
-    const membership = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const created = await tx.teamMembership.create({
         data: {
           teamId,
@@ -314,7 +324,7 @@ async function addTeamMember({ teamId, actorUserId, userId, role }) {
         },
       });
 
-      await logActivity({
+      const activity = await logActivity({
         prisma: tx,
         teamId,
         actorUserId,
@@ -327,15 +337,17 @@ async function addTeamMember({ teamId, actorUserId, userId, role }) {
         },
       });
 
-      return created;
+      return { membership: created, activity };
     });
+
+    publishActivity(result.activity);
 
     return {
       membership: {
-        teamId: membership.teamId,
-        role: membership.role,
-        user: membership.user,
-        createdAt: membership.createdAt,
+        teamId: result.membership.teamId,
+        role: result.membership.role,
+        user: result.membership.user,
+        createdAt: result.membership.createdAt,
       },
     };
   } catch (err) {

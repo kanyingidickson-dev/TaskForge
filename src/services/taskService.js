@@ -1,6 +1,6 @@
 const { getPrisma } = require('../db/prisma');
 const { HttpError } = require('../utils/httpError');
-const { logActivity } = require('./activityLogService');
+const { logActivity, publishActivity } = require('./activityLogService');
 
 async function createTask({
   teamId,
@@ -14,7 +14,7 @@ async function createTask({
 }) {
   const prisma = getPrisma();
 
-  const task = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     if (assigneeUserId) {
       const assigneeMembership = await tx.teamMembership.findUnique({
         where: {
@@ -67,7 +67,7 @@ async function createTask({
       },
     });
 
-    await logActivity({
+    const activity = await logActivity({
       prisma: tx,
       teamId,
       actorUserId: createdByUserId,
@@ -82,10 +82,12 @@ async function createTask({
       },
     });
 
-    return created;
+    return { task: created, activity };
   });
 
-  return { task };
+  publishActivity(result.activity);
+
+  return { task: result.task };
 }
 
 async function listTeamTasks({ teamId }) {
@@ -125,7 +127,7 @@ async function listTeamTasks({ teamId }) {
 async function updateTask({ teamId, taskId, actorUserId, patch }) {
   const prisma = getPrisma();
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const existing = await tx.task.findFirst({
       where: {
         id: taskId,
@@ -193,7 +195,7 @@ async function updateTask({ teamId, taskId, actorUserId, patch }) {
       },
     });
 
-    await logActivity({
+    const activity = await logActivity({
       prisma: tx,
       teamId,
       actorUserId,
@@ -209,10 +211,12 @@ async function updateTask({ teamId, taskId, actorUserId, patch }) {
       },
     });
 
-    return next;
+    return { task: next, activity };
   });
 
-  return { task: updated };
+  publishActivity(result.activity);
+
+  return { task: result.task };
 }
 
 module.exports = {

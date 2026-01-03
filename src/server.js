@@ -2,10 +2,12 @@ const http = require('http');
 const { createApp } = require('./app');
 const { env } = require('./config/env');
 const { disconnectPrisma } = require('./db/prisma');
+const { initRealtimeServer } = require('./realtime/realtimeServer');
 const { logger } = require('./utils/logger');
 
 const app = createApp();
 const server = http.createServer(app);
+const realtime = initRealtimeServer(server);
 
 server.keepAliveTimeout = 65_000;
 server.headersTimeout = 66_000;
@@ -16,6 +18,8 @@ server.listen(env.port, () => {
 
 function shutdown(signal) {
   logger.info({ signal }, 'shutdown started');
+
+  realtime.close();
 
   server.close((err) => {
     if (err) {

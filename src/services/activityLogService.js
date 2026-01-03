@@ -1,4 +1,22 @@
+const { EventEmitter } = require('events');
+
 const { getPrisma } = require('../db/prisma');
+const { logger } = require('../utils/logger');
+
+const activityEmitter = new EventEmitter();
+
+function publishActivity(activity) {
+  try {
+    activityEmitter.emit('activity', activity);
+  } catch (err) {
+    logger.error({ err }, 'activity publish error');
+  }
+}
+
+function onActivity(listener) {
+  activityEmitter.on('activity', listener);
+  return () => activityEmitter.off('activity', listener);
+}
 
 async function logActivity({
   prisma,
@@ -11,7 +29,7 @@ async function logActivity({
 }) {
   const client = prisma || getPrisma();
 
-  await client.activityLog.create({
+  const activity = await client.activityLog.create({
     data: {
       teamId,
       actorUserId: actorUserId || null,
@@ -21,8 +39,12 @@ async function logActivity({
       data: data || {},
     },
   });
+
+  return activity;
 }
 
 module.exports = {
   logActivity,
+  publishActivity,
+  onActivity,
 };
