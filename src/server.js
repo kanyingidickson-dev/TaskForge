@@ -1,6 +1,7 @@
 const http = require('http');
 const { createApp } = require('./app');
 const { env } = require('./config/env');
+const { disconnectPrisma } = require('./db/prisma');
 const { logger } = require('./utils/logger');
 
 const app = createApp();
@@ -22,8 +23,15 @@ function shutdown(signal) {
       process.exitCode = 1;
     }
 
-    logger.info('shutdown complete');
-    process.exit();
+    disconnectPrisma()
+      .catch((disconnectErr) => {
+        logger.error({ err: disconnectErr }, 'shutdown error');
+        process.exitCode = 1;
+      })
+      .finally(() => {
+        logger.info('shutdown complete');
+        process.exit();
+      });
   });
 
   setTimeout(() => {
