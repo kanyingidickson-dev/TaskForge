@@ -2,6 +2,7 @@ const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
+const { env } = require('./config/env');
 const { requestId } = require('./middleware/requestId');
 const { securityHeaders } = require('./middleware/securityHeaders');
 const { notFound } = require('./middleware/notFound');
@@ -16,8 +17,7 @@ function createApp() {
 
   app.use(helmet());
 
-  const rateLimitEnabled =
-    process.env.DISABLE_RATE_LIMIT !== '1' && process.env.NODE_ENV === 'production';
+  const rateLimitEnabled = !env.disableRateLimit && env.isProduction;
 
   if (rateLimitEnabled) {
     app.use(

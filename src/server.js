@@ -1,8 +1,7 @@
 const http = require('http');
 const { createApp } = require('./app');
+const { env } = require('./config/env');
 const { logger } = require('./utils/logger');
-
-const port = Number.parseInt(process.env.PORT, 10) || 3000;
 
 const app = createApp();
 const server = http.createServer(app);
@@ -10,8 +9,8 @@ const server = http.createServer(app);
 server.keepAliveTimeout = 65_000;
 server.headersTimeout = 66_000;
 
-server.listen(port, () => {
-  logger.info({ port }, 'server listening');
+server.listen(env.port, () => {
+  logger.info({ port: env.port }, 'server listening');
 });
 
 function shutdown(signal) {
