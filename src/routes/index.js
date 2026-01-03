@@ -1,5 +1,8 @@
 const express = require('express');
 
+const { authRoutes } = require('./auth');
+const { meRoutes } = require('./me');
+
 const routes = express.Router();
 
 const ROOT_BODY = 'Welcome to TaskForge!';
@@ -23,5 +26,8 @@ routes.get('/', (req, res) => {
 routes.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
+
+routes.use('/auth', authRoutes);
+routes.use(meRoutes);
 
 module.exports = { routes };
