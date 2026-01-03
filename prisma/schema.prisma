@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ActivityEntityType {
+  TASK
+  COMMENT
+  TEAM
+  MEMBERSHIP
+}
+
+enum ActivityAction {
+  CREATED
+  UPDATED
+  DELETED
+  COMMENTED
+  ASSIGNED
+  STATUS_CHANGED
+}
+
+model User {
+  id           String           @id @default(uuid()) @db.Uuid
+  email        String           @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  memberships  TeamMembership[]
+  teamsCreated Team[]           @relation("TeamCreatedBy")
+  tasksCreated Task[]           @relation("TaskCreatedBy")
+  tasksAssigned Task[]          @relation("TaskAssignee")
+  comments     Comment[]
+  activities   ActivityLog[]
+}
+
+model Team {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  createdByUserId String           @db.Uuid
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  createdBy       User             @relation("TeamCreatedBy", fields: [createdByUserId], references: [id])
+  memberships     TeamMembership[]
+  invites         TeamInvite[]
+  tasks           Task[]
+  comments        Comment[]
+  activities      ActivityLog[]
+
+  @@index([createdByUserId])
+}
+
+model TeamMembership {
+  id        String   @id @default(uuid()) @db.Uuid
+  teamId    String   @db.Uuid
+  userId    String   @db.Uuid
+  role      TeamRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([teamId, userId])
+  @@index([userId, teamId])
+}
+
+model TeamInvite {
+  id              String   @id @default(uuid()) @db.Uuid
+  teamId          String   @db.Uuid
+  email           String
+  role            TeamRole
+  tokenHash       String
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdByUserId String   @db.Uuid
+  createdAt       DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@index([teamId, email])
+  @@index([expiresAt])
+}
+
+model Task {
+  id              String        @id @default(uuid()) @db.Uuid
+  teamId          String        @db.Uuid
+  title           String
+  description     String?
+  status          TaskStatus
+  priority        TaskPriority
+  dueAt           DateTime?
+  createdByUserId String        @db.Uuid
+  assigneeUserId  String?       @db.Uuid
+  deletedAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  team     Team   @relation(fields: [teamId], references: [id])
+  createdBy User  @relation("TaskCreatedBy", fields: [createdByUserId], references: [id])
+  assignee  User? @relation("TaskAssignee", fields: [assigneeUserId], references: [id])
+  comments  Comment[]
+
+  @@index([teamId, status, updatedAt])
+  @@index([teamId, assigneeUserId, dueAt])
+  @@index([teamId, updatedAt])
+}
+
+model Comment {
+  id           String   @id @default(uuid()) @db.Uuid
+  taskId       String   @db.Uuid
+  teamId       String   @db.Uuid
+  authorUserId String   @db.Uuid
+  body         String
+  deletedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  task   Task @relation(fields: [taskId], references: [id])
+  team   Team @relation(fields: [teamId], references: [id])
+  author User @relation(fields: [authorUserId], references: [id])
+
+  @@index([taskId, createdAt])
+  @@index([teamId, createdAt])
+}
+
+model ActivityLog {
+  id          String            @id @default(uuid()) @db.Uuid
+  teamId      String            @db.Uuid
+  actorUserId String?           @db.Uuid
+  entityType  ActivityEntityType
+  entityId    String            @db.Uuid
+  action      ActivityAction
+  data        Json
+  createdAt   DateTime          @default(now())
+
+  team  Team  @relation(fields: [teamId], references: [id])
+  actor User? @relation(fields: [actorUserId], references: [id])
+
+  @@index([teamId, createdAt])
+  @@index([entityType, entityId])
+}
