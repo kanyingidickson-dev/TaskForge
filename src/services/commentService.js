@@ -1,5 +1,6 @@
 const { getPrisma } = require('../db/prisma');
 const { HttpError } = require('../utils/httpError');
+const { logActivity } = require('./activityLogService');
 
 const ROLE_RANK = {
   MEMBER: 1,
@@ -28,26 +29,42 @@ async function assertTaskExists({ prisma, teamId, taskId }) {
 async function createComment({ teamId, taskId, authorUserId, body }) {
   const prisma = getPrisma();
 
-  await assertTaskExists({ prisma, teamId, taskId });
+  const comment = await prisma.$transaction(async (tx) => {
+    await assertTaskExists({ prisma: tx, teamId, taskId });
 
-  const comment = await prisma.comment.create({
-    data: {
-      teamId,
-      taskId,
-      authorUserId,
-      body,
-    },
-    include: {
-      author: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          createdAt: true,
-          updatedAt: true,
+    const created = await tx.comment.create({
+      data: {
+        teamId,
+        taskId,
+        authorUserId,
+        body,
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            createdAt: true,
+            updatedAt: true,
+          },
         },
       },
-    },
+    });
+
+    await logActivity({
+      prisma: tx,
+      teamId,
+      actorUserId: authorUserId,
+      entityType: 'COMMENT',
+      entityId: created.id,
+      action: 'COMMENTED',
+      data: {
+        taskId,
+      },
+    });
+
+    return created;
   });
 
   return { comment };
@@ -84,39 +101,53 @@ async function listTaskComments({ teamId, taskId }) {
 async function deleteComment({ teamId, taskId, commentId, actorUserId, actorRole }) {
   const prisma = getPrisma();
 
-  await assertTaskExists({ prisma, teamId, taskId });
+  await prisma.$transaction(async (tx) => {
+    await assertTaskExists({ prisma: tx, teamId, taskId });
 
-  const comment = await prisma.comment.findFirst({
-    where: {
-      id: commentId,
+    const comment = await tx.comment.findFirst({
+      where: {
+        id: commentId,
+        teamId,
+        taskId,
+        deletedAt: null,
+      },
+    });
+
+    if (!comment) {
+      throw new HttpError({
+        status: 404,
+        code: 'COMMENT_NOT_FOUND',
+        message: 'Comment not found',
+      });
+    }
+
+    const actorRank = ROLE_RANK[actorRole] || 0;
+    const canDelete = comment.authorUserId === actorUserId || actorRank >= ROLE_RANK.ADMIN;
+
+    if (!canDelete) {
+      throw new HttpError({
+        status: 403,
+        code: 'FORBIDDEN',
+        message: 'Forbidden',
+      });
+    }
+
+    await tx.comment.update({
+      where: { id: comment.id },
+      data: { deletedAt: new Date() },
+    });
+
+    await logActivity({
+      prisma: tx,
       teamId,
-      taskId,
-      deletedAt: null,
-    },
-  });
-
-  if (!comment) {
-    throw new HttpError({
-      status: 404,
-      code: 'COMMENT_NOT_FOUND',
-      message: 'Comment not found',
+      actorUserId,
+      entityType: 'COMMENT',
+      entityId: comment.id,
+      action: 'DELETED',
+      data: {
+        taskId,
+      },
     });
-  }
-
-  const actorRank = ROLE_RANK[actorRole] || 0;
-  const canDelete = comment.authorUserId === actorUserId || actorRank >= ROLE_RANK.ADMIN;
-
-  if (!canDelete) {
-    throw new HttpError({
-      status: 403,
-      code: 'FORBIDDEN',
-      message: 'Forbidden',
-    });
-  }
-
-  await prisma.comment.update({
-    where: { id: comment.id },
-    data: { deletedAt: new Date() },
   });
 }
 

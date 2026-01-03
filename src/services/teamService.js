@@ -1,5 +1,6 @@
 const { getPrisma } = require('../db/prisma');
 const { HttpError } = require('../utils/httpError');
+const { logActivity } = require('./activityLogService');
 
 const ROLE_RANK = {
   MEMBER: 1,
@@ -10,112 +11,144 @@ const ROLE_RANK = {
 async function createTeam({ userId, name }) {
   const prisma = getPrisma();
 
-  const team = await prisma.team.create({
-    data: {
-      name,
-      createdByUserId: userId,
-      memberships: {
-        create: {
-          userId,
-          role: 'OWNER',
+  const team = await prisma.$transaction(async (tx) => {
+    const created = await tx.team.create({
+      data: {
+        name,
+        createdByUserId: userId,
+        memberships: {
+          create: {
+            userId,
+            role: 'OWNER',
+          },
         },
       },
-    },
+    });
+
+    await logActivity({
+      prisma: tx,
+      teamId: created.id,
+      actorUserId: userId,
+      entityType: 'TEAM',
+      entityId: created.id,
+      action: 'CREATED',
+      data: { name: created.name },
+    });
+
+    return created;
   });
 
   return { team };
 }
 
-async function updateTeamMemberRole({ teamId, actorRole, targetUserId, role }) {
+async function updateTeamMemberRole({ teamId, actorUserId, actorRole, targetUserId, role }) {
   const prisma = getPrisma();
 
-  const membership = await prisma.teamMembership.findUnique({
-    where: {
-      teamId_userId: {
-        teamId,
-        userId: targetUserId,
-      },
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          createdAt: true,
-          updatedAt: true,
+  const updated = await prisma.$transaction(async (tx) => {
+    const membership = await tx.teamMembership.findUnique({
+      where: {
+        teamId_userId: {
+          teamId,
+          userId: targetUserId,
         },
       },
-    },
-  });
-
-  if (!membership) {
-    throw new HttpError({
-      status: 404,
-      code: 'MEMBERSHIP_NOT_FOUND',
-      message: 'Membership not found',
-    });
-  }
-
-  if (role === 'OWNER' && actorRole !== 'OWNER') {
-    throw new HttpError({
-      status: 403,
-      code: 'FORBIDDEN',
-      message: 'Forbidden',
-    });
-  }
-
-  if (membership.role === 'OWNER' && actorRole !== 'OWNER') {
-    throw new HttpError({
-      status: 403,
-      code: 'FORBIDDEN',
-      message: 'Forbidden',
-    });
-  }
-
-  if (membership.role === 'OWNER' && role !== 'OWNER') {
-    const owners = await prisma.teamMembership.count({
-      where: { teamId, role: 'OWNER' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
     });
 
-    if (owners <= 1) {
+    if (!membership) {
       throw new HttpError({
-        status: 409,
-        code: 'LAST_OWNER',
-        message: 'Team must have at least one owner',
+        status: 404,
+        code: 'MEMBERSHIP_NOT_FOUND',
+        message: 'Membership not found',
       });
     }
-  }
 
-  const actorRank = ROLE_RANK[actorRole] || 0;
-  const targetRank = ROLE_RANK[membership.role] || 0;
-  if (actorRank < targetRank) {
-    throw new HttpError({
-      status: 403,
-      code: 'FORBIDDEN',
-      message: 'Forbidden',
-    });
-  }
+    if (role === 'OWNER' && actorRole !== 'OWNER') {
+      throw new HttpError({
+        status: 403,
+        code: 'FORBIDDEN',
+        message: 'Forbidden',
+      });
+    }
 
-  const updated = await prisma.teamMembership.update({
-    where: {
-      teamId_userId: {
-        teamId,
-        userId: targetUserId,
-      },
-    },
-    data: { role },
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          createdAt: true,
-          updatedAt: true,
+    if (membership.role === 'OWNER' && actorRole !== 'OWNER') {
+      throw new HttpError({
+        status: 403,
+        code: 'FORBIDDEN',
+        message: 'Forbidden',
+      });
+    }
+
+    if (membership.role === 'OWNER' && role !== 'OWNER') {
+      const owners = await tx.teamMembership.count({
+        where: { teamId, role: 'OWNER' },
+      });
+
+      if (owners <= 1) {
+        throw new HttpError({
+          status: 409,
+          code: 'LAST_OWNER',
+          message: 'Team must have at least one owner',
+        });
+      }
+    }
+
+    const actorRank = ROLE_RANK[actorRole] || 0;
+    const targetRank = ROLE_RANK[membership.role] || 0;
+    if (actorRank < targetRank) {
+      throw new HttpError({
+        status: 403,
+        code: 'FORBIDDEN',
+        message: 'Forbidden',
+      });
+    }
+
+    const updatedMembership = await tx.teamMembership.update({
+      where: {
+        teamId_userId: {
+          teamId,
+          userId: targetUserId,
         },
       },
-    },
+      data: { role },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+    });
+
+    await logActivity({
+      prisma: tx,
+      teamId,
+      actorUserId,
+      entityType: 'MEMBERSHIP',
+      entityId: updatedMembership.id,
+      action: 'UPDATED',
+      data: {
+        userId: targetUserId,
+        roleFrom: membership.role,
+        roleTo: role,
+      },
+    });
+
+    return updatedMembership;
   });
 
   return {
@@ -129,65 +162,77 @@ async function updateTeamMemberRole({ teamId, actorRole, targetUserId, role }) {
   };
 }
 
-async function removeTeamMember({ teamId, actorRole, targetUserId }) {
+async function removeTeamMember({ teamId, actorUserId, actorRole, targetUserId }) {
   const prisma = getPrisma();
 
-  const membership = await prisma.teamMembership.findUnique({
-    where: {
-      teamId_userId: {
-        teamId,
-        userId: targetUserId,
+  await prisma.$transaction(async (tx) => {
+    const membership = await tx.teamMembership.findUnique({
+      where: {
+        teamId_userId: {
+          teamId,
+          userId: targetUserId,
+        },
       },
-    },
-  });
-
-  if (!membership) {
-    throw new HttpError({
-      status: 404,
-      code: 'MEMBERSHIP_NOT_FOUND',
-      message: 'Membership not found',
-    });
-  }
-
-  if (membership.role === 'OWNER' && actorRole !== 'OWNER') {
-    throw new HttpError({
-      status: 403,
-      code: 'FORBIDDEN',
-      message: 'Forbidden',
-    });
-  }
-
-  if (membership.role === 'OWNER') {
-    const owners = await prisma.teamMembership.count({
-      where: { teamId, role: 'OWNER' },
     });
 
-    if (owners <= 1) {
+    if (!membership) {
       throw new HttpError({
-        status: 409,
-        code: 'LAST_OWNER',
-        message: 'Team must have at least one owner',
+        status: 404,
+        code: 'MEMBERSHIP_NOT_FOUND',
+        message: 'Membership not found',
       });
     }
-  }
 
-  const actorRank = ROLE_RANK[actorRole] || 0;
-  const targetRank = ROLE_RANK[membership.role] || 0;
-  if (actorRank < targetRank) {
-    throw new HttpError({
-      status: 403,
-      code: 'FORBIDDEN',
-      message: 'Forbidden',
-    });
-  }
+    if (membership.role === 'OWNER' && actorRole !== 'OWNER') {
+      throw new HttpError({
+        status: 403,
+        code: 'FORBIDDEN',
+        message: 'Forbidden',
+      });
+    }
 
-  await prisma.teamMembership.delete({
-    where: {
-      teamId_userId: {
-        teamId,
-        userId: targetUserId,
+    if (membership.role === 'OWNER') {
+      const owners = await tx.teamMembership.count({
+        where: { teamId, role: 'OWNER' },
+      });
+
+      if (owners <= 1) {
+        throw new HttpError({
+          status: 409,
+          code: 'LAST_OWNER',
+          message: 'Team must have at least one owner',
+        });
+      }
+    }
+
+    const actorRank = ROLE_RANK[actorRole] || 0;
+    const targetRank = ROLE_RANK[membership.role] || 0;
+    if (actorRank < targetRank) {
+      throw new HttpError({
+        status: 403,
+        code: 'FORBIDDEN',
+        message: 'Forbidden',
+      });
+    }
+
+    await tx.teamMembership.delete({
+      where: {
+        teamId_userId: {
+          teamId,
+          userId: targetUserId,
+        },
       },
-    },
+    });
+
+    await logActivity({
+      prisma: tx,
+      teamId,
+      actorUserId: actorUserId || null,
+      entityType: 'MEMBERSHIP',
+      entityId: membership.id,
+      action: 'DELETED',
+      data: { userId: targetUserId },
+    });
   });
 }
 
@@ -236,7 +281,7 @@ async function listTeamMembers({ teamId }) {
   };
 }
 
-async function addTeamMember({ teamId, userId, role }) {
+async function addTeamMember({ teamId, actorUserId, userId, role }) {
   const prisma = getPrisma();
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -249,23 +294,40 @@ async function addTeamMember({ teamId, userId, role }) {
   }
 
   try {
-    const membership = await prisma.teamMembership.create({
-      data: {
-        teamId,
-        userId,
-        role,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            createdAt: true,
-            updatedAt: true,
+    const membership = await prisma.$transaction(async (tx) => {
+      const created = await tx.teamMembership.create({
+        data: {
+          teamId,
+          userId,
+          role,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              createdAt: true,
+              updatedAt: true,
+            },
           },
         },
-      },
+      });
+
+      await logActivity({
+        prisma: tx,
+        teamId,
+        actorUserId,
+        entityType: 'MEMBERSHIP',
+        entityId: created.id,
+        action: 'CREATED',
+        data: {
+          userId,
+          role,
+        },
+      });
+
+      return created;
     });
 
     return {

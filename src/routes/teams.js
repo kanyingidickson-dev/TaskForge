@@ -63,6 +63,7 @@ teamsRoutes.post(
   asyncHandler(async (req, res) => {
     const result = await teamService.addTeamMember({
       teamId: req.params.teamId,
+      actorUserId: req.user.id,
       userId: req.body.userId,
       role: req.body.role,
     });
@@ -78,6 +79,7 @@ teamsRoutes.patch(
   asyncHandler(async (req, res) => {
     const result = await teamService.updateTeamMemberRole({
       teamId: req.params.teamId,
+      actorUserId: req.user.id,
       actorRole: req.teamMembership.role,
       targetUserId: req.params.userId,
       role: req.body.role,
@@ -93,6 +95,7 @@ teamsRoutes.delete(
   asyncHandler(async (req, res) => {
     await teamService.removeTeamMember({
       teamId: req.params.teamId,
+      actorUserId: req.user.id,
       actorRole: req.teamMembership.role,
       targetUserId: req.params.userId,
     });

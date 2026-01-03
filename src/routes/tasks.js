@@ -77,6 +77,7 @@ tasksRoutes.patch(
     const result = await taskService.updateTask({
       teamId: req.params.teamId,
       taskId: req.params.taskId,
+      actorUserId: req.user.id,
       patch: req.body,
     });
 
