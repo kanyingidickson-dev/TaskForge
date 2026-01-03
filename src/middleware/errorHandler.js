@@ -33,11 +33,19 @@ function errorHandler() {
       logger.info(logMeta, 'request error');
     }
 
+    const responseError = {
+      code,
+      message,
+      requestId: req.id,
+    };
+
+    if (err instanceof HttpError && err.details !== undefined) {
+      responseError.details = err.details;
+    }
+
     res.status(status).json({
       error: {
-        code,
-        message,
-        requestId: req.id,
+        ...responseError,
       },
     });
   };
