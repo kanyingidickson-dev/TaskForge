@@ -26,12 +26,15 @@ function parseNodeEnv(value) {
 
 const nodeEnv = parseNodeEnv(process.env.NODE_ENV);
 
-function requireInProduction(name) {
+function requireSecret(name, testFallback) {
   const value = process.env[name];
-  if (nodeEnv === 'production' && !value) {
-    throw new Error(`${name} is required in production`);
+  if (value) return value;
+
+  if (nodeEnv === 'test') {
+    return testFallback;
   }
-  return value;
+
+  throw new Error(`${name} is required`);
 }
 
 const env = {
@@ -41,8 +44,8 @@ const env = {
   disableRateLimit: process.env.DISABLE_RATE_LIMIT === '1',
   databaseUrl: process.env.DATABASE_URL,
 
-  jwtAccessSecret: requireInProduction('JWT_ACCESS_SECRET'),
-  jwtRefreshSecret: requireInProduction('JWT_REFRESH_SECRET'),
+  jwtAccessSecret: requireSecret('JWT_ACCESS_SECRET', 'test-access-secret'),
+  jwtRefreshSecret: requireSecret('JWT_REFRESH_SECRET', 'test-refresh-secret'),
   jwtAccessTtlSeconds: parsePositiveInt(
     process.env.JWT_ACCESS_TTL_SECONDS,
     15 * 60,
