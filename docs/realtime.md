@@ -20,6 +20,23 @@ WebSockets are used for low-latency updates. A Socket.IO-style layer is acceptab
 3. Server joins the socket to team-scoped rooms.
 4. Client subscribes to narrower scopes (task room, board room) as needed.
 
+Current implementation:
+
+- WebSocket endpoint: `/realtime?token=<accessToken>`
+- Token must be a valid JWT access token.
+
+Client messages:
+
+- `{"type":"subscribe","teamId":"<uuid>"}`
+- `{"type":"unsubscribe","teamId":"<uuid>"}`
+
+Server messages:
+
+- `{"type":"subscribed","teamId":"<uuid>"}`
+- `{"type":"unsubscribed","teamId":"<uuid>"}`
+- `{"type":"activity","activity":{...}}`
+- `{"type":"error","code":"..."}`
+
 ## Room / channel strategy
 
 Rooms are the core mechanism for limiting fanout:
