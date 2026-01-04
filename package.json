@@ -5,7 +5,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
+    "dev": "sh -c 'if [ -f .env ]; then exec node --env-file=.env --watch src/server.js; else exec node --watch src/server.js; fi'",
     "lint": "eslint .",
     "format": "prettier -w .",
     "test": "jest",
