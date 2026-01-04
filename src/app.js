@@ -1,3 +1,13 @@
+/**
+ * Express application factory.
+ *
+ * Responsibilities:
+ * - Configure security middleware (Helmet + custom headers)
+ * - Apply optional rate limiting in production
+ * - Serve static assets and register API routes
+ * - Install not-found and error handlers (must be last)
+ */
+
 const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -14,6 +24,9 @@ function createApp() {
   const app = express();
 
   app.disable('x-powered-by');
+
+  // NOTE: Required when running behind a reverse proxy so Express derives the
+  // correct client IP (affects rate limiting and audit logs).
   app.set('trust proxy', 1);
 
   app.use(
@@ -25,12 +38,15 @@ function createApp() {
           "style-src": ["'self'", "'unsafe-inline'"],
           "img-src": ["'self'", 'data:', 'https:'],
           "font-src": ["'self'", 'data:', 'https:'],
+          // NOTE: Allows the browser client to open WebSocket connections.
           "connect-src": ["'self'", 'ws:', 'wss:'],
         },
       },
     })
   );
 
+  // NOTE: Enabled only in production by default to keep local development fast
+  // and to reduce surprises behind proxies.
   const rateLimitEnabled = !env.disableRateLimit && env.isProduction;
 
   if (rateLimitEnabled) {

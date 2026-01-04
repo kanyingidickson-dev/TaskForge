@@ -1,3 +1,14 @@
+/**
+ * Authentication middleware.
+ *
+ * - Expects `Authorization: Bearer <access-token>`
+ * - Verifies the token signature + type
+ * - Attaches `{ id }` to `req.user`
+ *
+ * NOTE: This does not hit the database. Handlers that need strong guarantees
+ * about user existence should load the user record explicitly.
+ */
+
 const { HttpError } = require('../utils/httpError');
 const { verifyAccessToken } = require('../auth/jwt');
 

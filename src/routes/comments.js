@@ -1,3 +1,14 @@
+/**
+ * Task comment routes.
+ *
+ * Responsibilities:
+ * - List/create/delete comments for a task
+ * - Enforce auth + team role checks
+ *
+ * NOTE: This router is mounted under `/teams/:teamId/tasks/:taskId/comments`,
+ * so `mergeParams` is required to access parent route params.
+ */
+
 const express = require('express');
 const { z } = require('zod');
 

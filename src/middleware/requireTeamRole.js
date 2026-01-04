@@ -1,3 +1,12 @@
+/**
+ * Team authorization middleware.
+ *
+ * Responsibilities:
+ * - Load the caller's team membership
+ * - Enforce a minimum required role
+ * - Attach `req.teamMembership` for downstream handlers
+ */
+
 const { getPrisma } = require('../db/prisma');
 const { HttpError } = require('../utils/httpError');
 

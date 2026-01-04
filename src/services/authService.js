@@ -1,3 +1,12 @@
+/**
+ * Authentication service.
+ *
+ * Responsibilities:
+ * - Register/login users and issue access + refresh tokens
+ * - Persist refresh sessions for revocation
+ * - Rotate refresh tokens on refresh (single-use) to limit replay risk
+ */
+
 const { env } = require('../config/env');
 const { getPrisma } = require('../db/prisma');
 const { HttpError } = require('../utils/httpError');
@@ -131,6 +140,9 @@ async function refresh({ refreshToken }) {
     where: { jti: session.jti },
     data: { revokedAt: now },
   });
+
+  // NOTE: We rotate refresh tokens (invalidate old, mint new) so a stolen refresh
+  // token has a smaller window of usefulness.
 
   const accessToken = signAccessToken({ userId: session.userId });
   const nextRefresh = signRefreshToken({ userId: session.userId });

@@ -1,3 +1,11 @@
+/**
+ * Legacy minimal server.
+ *
+ * NOTE: The current TaskForge implementation lives under `src/` and the real
+ * entry point is `src/server.js` (see `package.json`). This file is kept only
+ * for historical reference.
+ */
+
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;

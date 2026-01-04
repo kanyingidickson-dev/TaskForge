@@ -1,3 +1,14 @@
+/**
+ * JWT helpers.
+ *
+ * Token shapes:
+ * - Access tokens: `{ sub, type: 'access' }`
+ * - Refresh tokens: `{ sub, type: 'refresh', jti }`
+ *
+ * NOTE: Refresh tokens include a `jti` so they can be revoked server-side
+ * (stored/blacklisted) without invalidating all refresh tokens for a user.
+ */
+
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 

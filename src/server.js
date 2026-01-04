@@ -1,3 +1,13 @@
+/**
+ * TaskForge HTTP server entry point.
+ *
+ * Responsibilities:
+ * - Create the Express app
+ * - Start the HTTP server
+ * - Attach the realtime WebSocket upgrade handler
+ * - Handle graceful shutdown (HTTP + Prisma)
+ */
+
 const http = require('http');
 const { createApp } = require('./app');
 const { env } = require('./config/env');
@@ -9,6 +19,8 @@ const app = createApp();
 const server = http.createServer(app);
 const realtime = initRealtimeServer(server);
 
+// NOTE: Node expects `headersTimeout` > `keepAliveTimeout` to avoid
+// terminating keep-alive connections while a request is still in-flight.
 server.keepAliveTimeout = 65_000;
 server.headersTimeout = 66_000;
 

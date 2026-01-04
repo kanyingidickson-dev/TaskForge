@@ -1,3 +1,13 @@
+/**
+ * Primary HTTP routes.
+ *
+ * Responsibilities:
+ * - Serve the landing page and static HTML apps (index/docs/app)
+ * - Expose OpenAPI spec
+ * - Provide basic health check
+ * - Mount API routers (auth/me/teams)
+ */
+
 const express = require('express');
 const path = require('path');
 
@@ -19,6 +29,8 @@ routes.get('/favicon.ico', (req, res) => {
 });
 
 routes.get('/docs', (req, res) => {
+  // NOTE: The docs page loads assets from unpkg, so we set a route-specific CSP
+  // instead of relying on the global Helmet policy.
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; script-src 'self' https://unpkg.com; style-src 'self' https://unpkg.com 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' ws: wss:"
@@ -41,6 +53,8 @@ routes.get('/openapi.json', (req, res) => {
 });
 
 routes.get('/', (req, res) => {
+  // NOTE: Content negotiation keeps the root useful for both browsers (HTML)
+  // and tooling (plain text).
   const accept = typeof req.headers.accept === 'string' ? req.headers.accept : '';
   if (accept.includes('text/html')) {
     res.status(200);

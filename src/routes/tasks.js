@@ -8,6 +8,8 @@ const { validate } = require('../middleware/validate');
 const taskService = require('../services/taskService');
 const { commentsRoutes } = require('./comments');
 
+// NOTE: This router is mounted under `/teams/:teamId/tasks`, so we enable
+// `mergeParams` to access `teamId` from the parent route.
 const tasksRoutes = express.Router({ mergeParams: true });
 
 const taskStatusSchema = z.enum(['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE']);
