@@ -43,21 +43,27 @@ Notes:
 
 ## Screenshots
 
-<p align="center">
-  <img src="docs/images/taskforge_ui.png" alt="TaskForge landing page" width="460" />
-  <img src="docs/images/taskforge_app.png" alt="TaskForge demo UI" width="460" />
-</p>
+### Landing (/)
 
 <p align="center">
-  <em>Landing (/) and Demo UI (/app)</em>
+  <img
+    src="docs/images/taskforge_ui.png"
+    alt="TaskForge landing page"
+    width="100%"
+    style="border:1px solid #ccc; border-radius:8px;"
+  />
 </p>
 
-<details>
-  <summary>Markdown image links</summary>
+### Demo UI (/app)
 
-![TaskForge landing page](docs/images/taskforge_ui.png)
-![TaskForge demo UI](docs/images/taskforge_app.png)
-</details>
+<p align="center">
+  <img
+    src="docs/images/taskforge_app.png"
+    alt="TaskForge demo UI"
+    width="100%"
+    style="border:1px solid #ccc; border-radius:8px;"
+  />
+</p>
 
 ## Local development
 
