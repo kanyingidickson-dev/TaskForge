@@ -120,3 +120,13 @@ Indexes:
 
 - Tasks and comments use `deleted_at` so the system can preserve context and activity history.
 - Queries must consistently filter `deleted_at is null` unless explicitly requested.
+
+## Implementation note
+
+This model is implemented in Prisma at [`prisma/schema.prisma`](../prisma/schema.prisma).
+
+## See also
+
+- [Architecture](architecture.md#architecture)
+- [Realtime](realtime.md#realtime-design)
+- [Technology stack](stack.md#technology-stack)

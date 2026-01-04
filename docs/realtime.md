@@ -37,6 +37,15 @@ Server messages:
 - `{"type":"activity","activity":{...}}`
 - `{"type":"error","code":"..."}`
 
+## Built-in showcase
+
+The demo UI at `http://localhost:3000/app` can connect to realtime and display activity events.
+
+- **Demo UI:** `http://localhost:3000/app`
+- **WebSocket:** `ws://localhost:3000/realtime?token=<accessToken>`
+
+Tip: open `http://localhost:3000/docs` (Swagger UI) in another tab to explore and call the HTTP endpoints while watching realtime updates.
+
 ## Room / channel strategy
 
 Rooms are the core mechanism for limiting fanout:
@@ -91,3 +100,9 @@ Service emits domain event -> Pubsub -> Each instance emits to its local sockets
 ```
 
 The domain event is the stable internal contract; the websocket layer is a consumer.
+
+## See also
+
+- [Architecture](architecture.md#architecture)
+- [Data model](data-model.md#data-model)
+- [Technology stack](stack.md#technology-stack)
