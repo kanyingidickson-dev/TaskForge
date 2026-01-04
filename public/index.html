@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TaskForge</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <h1>TaskForge</h1>
+        </div>
+        <div class="nav">
+          <a class="btn" href="/docs">API Docs</a>
+          <a class="btn primary" href="/app">Showcase App</a>
+          <a class="btn" href="/health">Health</a>
+          <a class="btn" href="/openapi.json">OpenAPI</a>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="card-h"><h2>What is running?</h2></div>
+          <div class="card-b">
+            <div class="list">
+              <div class="item">
+                <div><strong>HTTP API</strong></div>
+                <div class="small">
+                  Express REST endpoints for auth, teams, tasks, comments.
+                </div>
+              </div>
+              <div class="item">
+                <div><strong>Realtime</strong></div>
+                <div class="small">
+                  WebSocket gateway at <span class="kbd">/realtime</span> (token-based).
+                </div>
+              </div>
+              <div class="item">
+                <div><strong>Docs + Demo UI</strong></div>
+                <div class="small">
+                  This repo includes a lightweight landing page, Swagger UI at <span class="kbd">/docs</span>,
+                  and a simple demo app at <span class="kbd">/app</span>.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><h2>Local setup</h2></div>
+          <div class="card-b">
+            <div class="small" style="margin-bottom: 10px;">
+              Most endpoints require Postgres. If DB isn’t configured you’ll see <span class="kbd">503 DB_NOT_CONFIGURED</span>.
+            </div>
+            <pre><code>cp .env.example .env
+
+docker compose up -d db
+
+npm run db:generate
+npm run db:migrate
+
+npm run dev</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 14px;">
+        <div class="card-h"><h2>Quick start</h2></div>
+        <div class="card-b">
+          <div class="row">
+            <a class="btn success" href="/app">Open demo UI</a>
+            <a class="btn" href="/docs">Explore API in Swagger UI</a>
+          </div>
+          <div class="small" style="margin-top: 10px;">
+            Tip: API clients should use <span class="kbd">Accept: application/json</span> (or no Accept header) for the plain-text welcome response at <span class="kbd">GET /</span>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TaskForge Showcase</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <h1>TaskForge Showcase</h1>
+        </div>
+        <div class="nav">
+          <a class="btn" href="/">Home</a>
+          <a class="btn" href="/docs">API Docs</a>
+          <a class="btn" href="/openapi.json">OpenAPI</a>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="card-h">
+            <h2>Client</h2>
+            <div class="row">
+              <button class="btn" id="btnLogout">Logout</button>
+              <button class="btn" id="btnClear">Clear Local State</button>
+            </div>
+          </div>
+          <div class="card-b">
+            <div class="row">
+              <div class="field">
+                <label>Email</label>
+                <input id="email" placeholder="dev@example.com" />
+              </div>
+              <div class="field">
+                <label>Name (register)</label>
+                <input id="name" placeholder="Dev User" />
+              </div>
+              <div class="field">
+                <label>Password</label>
+                <input id="password" type="password" placeholder="password123" />
+              </div>
+            </div>
+
+            <div class="row" style="margin-top: 12px;">
+              <button class="btn success" id="btnRegister">Register</button>
+              <button class="btn primary" id="btnLogin">Login</button>
+              <button class="btn" id="btnMe">Get /me</button>
+              <button class="btn" id="btnTeams">List teams</button>
+            </div>
+
+            <div style="margin-top: 12px;" class="small">
+              Access token is stored in <span class="kbd">localStorage</span>.
+            </div>
+
+            <div style="margin-top: 12px;">
+              <label>Client output</label>
+              <pre><code id="out">Ready.</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <h2>Realtime</h2>
+            <div class="row">
+              <button class="btn" id="btnWsConnect">Connect</button>
+              <button class="btn" id="btnWsClose">Close</button>
+            </div>
+          </div>
+          <div class="card-b">
+            <div class="row">
+              <div class="field">
+                <label>Team to subscribe</label>
+                <input id="wsTeamId" placeholder="teamId" />
+              </div>
+              <button class="btn" id="btnSubscribe">Subscribe</button>
+              <button class="btn" id="btnUnsubscribe">Unsubscribe</button>
+            </div>
+
+            <div style="margin-top: 12px;">
+              <label>Activity stream</label>
+              <pre><code id="activity">Not connected.</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 14px;">
+        <div class="card-h"><h2>Teams & Tasks</h2></div>
+        <div class="card-b">
+          <div class="row">
+            <div class="field" style="min-width: 240px;">
+              <label>Create team</label>
+              <input id="teamName" placeholder="My Team" />
+            </div>
+            <button class="btn success" id="btnCreateTeam">Create</button>
+            <div class="field" style="min-width: 240px;">
+              <label>Selected teamId</label>
+              <input id="teamId" placeholder="teamId" />
+            </div>
+            <button class="btn" id="btnSelectTeam">Select</button>
+          </div>
+
+          <div class="row" style="margin-top: 12px;">
+            <div class="field">
+              <label>Create task title</label>
+              <input id="taskTitle" placeholder="Ship realtime demo" />
+            </div>
+            <div class="field">
+              <label>Priority</label>
+              <select id="taskPriority">
+                <option>LOW</option>
+                <option selected>MEDIUM</option>
+                <option>HIGH</option>
+                <option>URGENT</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Status</label>
+              <select id="taskStatus">
+                <option selected>TODO</option>
+                <option>IN_PROGRESS</option>
+                <option>BLOCKED</option>
+                <option>DONE</option>
+              </select>
+            </div>
+            <button class="btn success" id="btnCreateTask">Create task</button>
+            <button class="btn" id="btnListTasks">List tasks</button>
+          </div>
+
+          <div class="small" style="margin-top: 12px;">
+            Tip: if realtime is connected and subscribed to the selected team, creating a team/task/comment should emit activities.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
