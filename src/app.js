@@ -1,6 +1,7 @@
 const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 
 const { env } = require('./config/env');
 const { requestId } = require('./middleware/requestId');
@@ -15,7 +16,20 @@ function createApp() {
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          "script-src": ["'self'"],
+          "style-src": ["'self'", "'unsafe-inline'"],
+          "img-src": ["'self'", 'data:', 'https:'],
+          "font-src": ["'self'", 'data:', 'https:'],
+          "connect-src": ["'self'", 'ws:', 'wss:'],
+        },
+      },
+    })
+  );
 
   const rateLimitEnabled = !env.disableRateLimit && env.isProduction;
 
@@ -32,6 +46,8 @@ function createApp() {
 
   app.use(requestId());
   app.use(securityHeaders());
+
+  app.use('/static', express.static(path.join(__dirname, '..', 'public')));
 
   app.use(express.json({ limit: '1mb' }));
 

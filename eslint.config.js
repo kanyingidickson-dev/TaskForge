@@ -29,6 +29,16 @@ const jestGlobals = {
   jest: 'readonly',
 };
 
+const browserGlobals = {
+  window: 'readonly',
+  document: 'readonly',
+  navigator: 'readonly',
+  location: 'readonly',
+  fetch: 'readonly',
+  localStorage: 'readonly',
+  WebSocket: 'readonly',
+};
+
 module.exports = [
   {
     ignores: ['node_modules/**', 'dist/**', 'coverage/**'],
@@ -50,6 +60,16 @@ module.exports = [
       globals: {
         ...nodeGlobals,
         ...jestGlobals,
+      },
+    },
+  },
+  {
+    files: ['public/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...browserGlobals,
       },
     },
   },
