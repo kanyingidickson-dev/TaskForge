@@ -1,5 +1,6 @@
 const { logger } = require('../utils/logger');
 const { HttpError } = require('../utils/httpError');
+const { env } = require('../config/env');
 
 function errorHandler() {
   return (err, req, res, next) => {
@@ -16,7 +17,13 @@ function errorHandler() {
       message: err && err.message,
     };
 
-    if (status >= 500 && err && err.stack) {
+    const shouldLogStack =
+      status >= 500 &&
+      err &&
+      err.stack &&
+      !(env.nodeEnv === 'test' && err instanceof HttpError);
+
+    if (shouldLogStack) {
       errForLog.stack = err.stack;
     }
 
