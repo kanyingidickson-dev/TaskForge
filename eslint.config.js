@@ -37,6 +37,8 @@ const browserGlobals = {
   fetch: 'readonly',
   localStorage: 'readonly',
   WebSocket: 'readonly',
+  SwaggerUIBundle: 'readonly',
+  SwaggerUIStandalonePreset: 'readonly',
 };
 
 module.exports = [
